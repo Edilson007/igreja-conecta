@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "projects": { "igreja-conecta-web": { "projectType": "application", "root": "", "sourceRoot": "src", "prefix": "app", "architect": { "build": { "builder": "@angular-devkit/build-angular:browser", "options": { "outputPath": "dist/igreja-conecta-web", "index": "src/index.html", "main": "src/main.ts", "polyfills": ["zone.js"], "tsConfig": "tsconfig.app.json", "assets": [], "styles": ["src/styles.css"], "scripts": [] } }, "serve": { "builder": "@angular-devkit/build-angular:dev-server", "options": { "browserTarget": "igreja-conecta-web:build", "proxyConfig": "proxy.conf.json" } } } } },
+  "cli": { "analytics": false }
+}

@@ -1,0 +1,6 @@
+@IgrejaConecta.Api_HostAddress = http://localhost:5114
+
+GET {{IgrejaConecta.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

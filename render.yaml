@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: igreja-conecta
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: igreja-conecta-db
+          property: connectionString
+
+databases:
+  - name: igreja-conecta-db
+    databaseName: igreja_conecta
+    user: igreja_conecta
+    plan: free

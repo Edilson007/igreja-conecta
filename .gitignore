@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+.vs/
+frontend/node_modules/
+frontend/.angular/
+frontend/dist/
+*.db
+*.db-shm
+*.db-wal
