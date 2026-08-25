@@ -20,5 +20,8 @@ WORKDIR /app
 COPY --from=backend-build /app/publish ./
 COPY --from=frontend-build /src/frontend/dist/igreja-conecta-web ./wwwroot
 ENV ASPNETCORE_URLS=http://+:8080
+# O plano gratuito do Render pode atingir o limite de inotify compartilhado.
+# Em produção não há necessidade de recarregar appsettings automaticamente.
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "IgrejaConecta.Api.dll"]
