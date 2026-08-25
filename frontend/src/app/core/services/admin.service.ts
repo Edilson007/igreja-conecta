@@ -1,15 +1,47 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
-export interface ParishForm { name: string; sector: string; city: string; state: string; address: string; phone: string; imageUrl: string; isPremium: boolean; massDay: string; massTime: string; massDescription: string; }
+export interface MassForm {
+  day: string;
+  time: string;
+  description?: string;
+}
+
+export interface ParishForm {
+  id?: string;
+  name: string;
+  sector: string;
+  city: string;
+  state: string;
+  address: string;
+  phone?: string;
+  imageUrl?: string;
+  isPremium: boolean;
+  massSchedules: MassForm[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   constructor(private readonly http: HttpClient) {}
-  create(key: string, form: ParishForm) {
-    return this.http.post('/api/admin/parishes', {
-      name: form.name, sector: form.sector, city: form.city, state: form.state, address: form.address, phone: form.phone, imageUrl: form.imageUrl, isPremium: form.isPremium,
-      massSchedules: form.massDay && form.massTime ? [{ day: form.massDay, time: form.massTime, description: form.massDescription }] : []
-    }, { headers: new HttpHeaders({ 'X-Admin-Key': key }) });
+
+  list(key: string): Observable<ParishForm[]> {
+    return this.http.get<ParishForm[]>('/api/admin/parishes', { headers: this.headers(key) });
+  }
+
+  create(key: string, parish: ParishForm): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>('/api/admin/parishes', parish, { headers: this.headers(key) });
+  }
+
+  update(key: string, parish: ParishForm): Observable<void> {
+    return this.http.put<void>(`/api/admin/parishes/${parish.id}`, parish, { headers: this.headers(key) });
+  }
+
+  delete(key: string, id: string): Observable<void> {
+    return this.http.delete<void>(`/api/admin/parishes/${id}`, { headers: this.headers(key) });
+  }
+
+  private headers(key: string): HttpHeaders {
+    return new HttpHeaders({ 'X-Admin-Key': key });
   }
 }
