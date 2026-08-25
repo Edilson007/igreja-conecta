@@ -17,10 +17,13 @@ public sealed class Parish
     public IReadOnlyCollection<MassSchedule> MassSchedules => _massSchedules;
     public IReadOnlyCollection<Activity> Activities => _activities;
     public IReadOnlyCollection<Chapel> Chapels => _chapels;
+    public IReadOnlyCollection<Community> Communities => _communities;
     private readonly List<MassSchedule> _massSchedules = [];
     private readonly List<Activity> _activities = [];
     private readonly List<Chapel> _chapels = [];
+    private readonly List<Community> _communities = [];
     public void AddMassSchedule(MassSchedule schedule) => _massSchedules.Add(schedule);
     public void AddActivity(Activity activity) => _activities.Add(activity);
     public void AddChapel(Chapel chapel) => _chapels.Add(chapel);
+    public void AddCommunity(Community community) => _communities.Add(community);
 }

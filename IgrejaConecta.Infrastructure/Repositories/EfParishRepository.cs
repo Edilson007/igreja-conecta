@@ -19,13 +19,19 @@ public sealed class EfParishRepository(ChurchDbContext db) : IParishRepository
         return (await source.OrderBy(x => x.Name).ToListAsync(ct)).Select(Map).ToArray();
     }
 
-    private IQueryable<ParishRecord> IncludeChildren() => db.Parishes.AsNoTracking().Include(x => x.MassSchedules).Include(x => x.Activities).Include(x => x.Chapels);
+    private IQueryable<ParishRecord> IncludeChildren() => db.Parishes.AsNoTracking().Include(x => x.MassSchedules).Include(x => x.Activities).Include(x => x.Chapels).Include(x => x.Communities).ThenInclude(x => x.MassSchedules);
     private static Parish Map(ParishRecord source)
     {
         var parish = new Parish(source.Id, source.Name, source.Sector, source.City, source.State, source.Address, source.Phone, source.ImageUrl, source.IsPremium, source.LastScheduleConfirmation);
         foreach (var item in source.MassSchedules) parish.AddMassSchedule(new(Enum.Parse<DayOfWeek>(item.Day), TimeOnly.Parse(item.Time), item.Description));
         foreach (var item in source.Activities) parish.AddActivity(new(item.Title, item.StartsAt, item.Description));
         foreach (var item in source.Chapels) parish.AddChapel(new(item.Name, item.Address));
+        foreach (var item in source.Communities)
+        {
+            var community = new Community(item.Id, item.Name, item.Address, item.Phone, item.ImageUrl);
+            foreach (var schedule in item.MassSchedules) community.AddMassSchedule(new(Enum.Parse<DayOfWeek>(schedule.Day), TimeOnly.Parse(schedule.Time), schedule.Description));
+            parish.AddCommunity(community);
+        }
         return parish;
     }
 }

@@ -10,4 +10,5 @@ export class ParishService {
     const params = new HttpParams().set('city', city).set('sector', sector).set('query', query);
     return this.http.get<Parish[]>(this.apiUrl, { params });
   }
+  getById(id: string) { return this.http.get<Parish>(`${this.apiUrl}/${id}`); }
 }

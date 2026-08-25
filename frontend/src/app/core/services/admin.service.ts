@@ -19,7 +19,9 @@ export interface ParishForm {
   imageUrl?: string;
   isPremium: boolean;
   massSchedules: MassForm[];
+  communities?: CommunityForm[];
 }
+export interface CommunityForm { id?: string; name: string; address: string; phone?: string; imageUrl?: string; massSchedules: MassForm[]; }
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
