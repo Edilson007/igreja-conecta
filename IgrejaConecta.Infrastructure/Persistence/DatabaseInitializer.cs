@@ -9,7 +9,7 @@ public static class DatabaseInitializer
         await db.Database.EnsureCreatedAsync(ct);
         if (await db.Parishes.AnyAsync(ct)) return;
 
-        var confirmedAt = new DateTimeOffset(2026, 8, 22, 9, 0, 0, TimeSpan.FromHours(-3));
+        var confirmedAt = new DateTimeOffset(2026, 8, 22, 12, 0, 0, TimeSpan.Zero);
         db.Parishes.AddRange(
             Create("11111111-1111-1111-1111-111111111111", "Catedral Diocesana Nossa Senhora das Dores", "Setor Guaxupé", "Guaxupé", confirmedAt, [("Sunday", "08:00"), ("Sunday", "19:00")], "Comunidade de teste — São José"),
             Create("22222222-2222-2222-2222-222222222222", "Basílica Nossa Senhora da Saúde", "Setor Poços de Caldas", "Poços de Caldas", confirmedAt, [("Saturday", "18:00"), ("Sunday", "10:00")], "Comunidade de teste — Nossa Senhora Aparecida"),
