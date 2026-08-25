@@ -12,7 +12,15 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
     public async Task<ActionResult<IReadOnlyCollection<AdminParishDto>>> List([FromHeader(Name = "X-Admin-Key")] string? key, CancellationToken ct)
     {
         if (!Authorized(key)) return Unauthorized();
-        return Ok(await Query().OrderBy(x => x.Name).ToListAsync(ct));
+        var parishes = await db.Parishes.AsNoTracking()
+            .Include(x => x.MassSchedules)
+            .OrderBy(x => x.Name)
+            .ToListAsync(ct);
+
+        return Ok(parishes.Select(x => new AdminParishDto(
+            x.Id, x.Name, x.Sector, x.City, x.State, x.Address, x.Phone, x.ImageUrl, x.IsPremium,
+            x.MassSchedules.OrderBy(s => s.Day).ThenBy(s => s.Time)
+                .Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description)).ToArray())).ToArray());
     }
 
     [HttpPost]
@@ -51,7 +59,6 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
         entity.Name = request.Name.Trim(); entity.City = request.City.Trim(); entity.State = string.IsNullOrWhiteSpace(request.State) ? "MG" : request.State.Trim().ToUpperInvariant(); entity.Sector = request.Sector.Trim(); entity.Address = request.Address?.Trim() ?? string.Empty; entity.Phone = request.Phone?.Trim(); entity.ImageUrl = request.ImageUrl?.Trim(); entity.IsPremium = request.IsPremium; entity.LastScheduleConfirmation = DateTimeOffset.UtcNow;
         entity.MassSchedules.Clear(); foreach (var item in request.MassSchedules.Where(x => !string.IsNullOrWhiteSpace(x.Day) && !string.IsNullOrWhiteSpace(x.Time))) entity.MassSchedules.Add(new MassScheduleRecord { ParishId = entity.Id, Day = item.Day, Time = item.Time, Description = item.Description?.Trim() });
     }
-    private IQueryable<AdminParishDto> Query() => db.Parishes.AsNoTracking().Include(x => x.MassSchedules).Select(x => new AdminParishDto(x.Id, x.Name, x.Sector, x.City, x.State, x.Address, x.Phone, x.ImageUrl, x.IsPremium, x.MassSchedules.OrderBy(s => s.Day).ThenBy(s => s.Time).Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description)).ToArray()));
 }
 
 public sealed record UpsertParishRequest(string Name, string Sector, string City, string? State, string? Address, string? Phone, string? ImageUrl, bool IsPremium, IReadOnlyCollection<UpsertMassScheduleRequest> MassSchedules);
