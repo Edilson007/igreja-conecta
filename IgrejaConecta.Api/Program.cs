@@ -5,6 +5,10 @@ using IgrejaConecta.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(renderPort))
+    builder.WebHost.UseUrls($"http://+:{renderPort}");
+
 builder.Services.AddControllers();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=igreja-conecta.db";
