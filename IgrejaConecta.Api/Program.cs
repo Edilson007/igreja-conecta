@@ -5,6 +5,10 @@ using IgrejaConecta.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+// O Render pode monitorar a porta declarada pela imagem ou a porta interna
+// atribuída à instância. O serviço aceita ambas para manter o health check estável.
+builder.WebHost.UseUrls("http://+:8080", "http://+:10000");
+
 builder.Services.AddControllers();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=igreja-conecta.db";
