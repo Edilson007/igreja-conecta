@@ -7,6 +7,8 @@ public static class DatabaseInitializer
     public static async Task InitializeAsync(ChurchDbContext db, CancellationToken ct = default)
     {
         await db.Database.EnsureCreatedAsync(ct);
+        if (db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Parishes\" ADD COLUMN IF NOT EXISTS \"ImageUrl\" text;", ct);
         if (await db.Parishes.AnyAsync(ct)) return;
 
         var confirmedAt = new DateTimeOffset(2026, 8, 22, 12, 0, 0, TimeSpan.Zero);

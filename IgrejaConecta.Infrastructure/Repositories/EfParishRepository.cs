@@ -22,7 +22,7 @@ public sealed class EfParishRepository(ChurchDbContext db) : IParishRepository
     private IQueryable<ParishRecord> IncludeChildren() => db.Parishes.AsNoTracking().Include(x => x.MassSchedules).Include(x => x.Activities).Include(x => x.Chapels);
     private static Parish Map(ParishRecord source)
     {
-        var parish = new Parish(source.Id, source.Name, source.Sector, source.City, source.State, source.Address, source.Phone, source.IsPremium, source.LastScheduleConfirmation);
+        var parish = new Parish(source.Id, source.Name, source.Sector, source.City, source.State, source.Address, source.Phone, source.ImageUrl, source.IsPremium, source.LastScheduleConfirmation);
         foreach (var item in source.MassSchedules) parish.AddMassSchedule(new(Enum.Parse<DayOfWeek>(item.Day), TimeOnly.Parse(item.Time), item.Description));
         foreach (var item in source.Activities) parish.AddActivity(new(item.Title, item.StartsAt, item.Description));
         foreach (var item in source.Chapels) parish.AddChapel(new(item.Name, item.Address));

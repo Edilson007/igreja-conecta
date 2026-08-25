@@ -17,6 +17,7 @@ public sealed class ChurchDbContext(DbContextOptions<ChurchDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Sector).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.ImageUrl).HasMaxLength(1000);
             entity.HasIndex(x => new { x.City, x.Sector });
             entity.HasMany(x => x.MassSchedules).WithOne().HasForeignKey(x => x.ParishId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(x => x.Activities).WithOne().HasForeignKey(x => x.ParishId).OnDelete(DeleteBehavior.Cascade);
@@ -37,6 +38,7 @@ public sealed class ParishRecord
     public string State { get; set; } = "MG";
     public string Address { get; set; } = string.Empty;
     public string? Phone { get; set; }
+    public string? ImageUrl { get; set; }
     public bool IsPremium { get; set; }
     public DateTimeOffset LastScheduleConfirmation { get; set; }
     public List<MassScheduleRecord> MassSchedules { get; set; } = [];

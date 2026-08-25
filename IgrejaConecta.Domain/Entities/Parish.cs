@@ -2,8 +2,8 @@ namespace IgrejaConecta.Domain.Entities;
 
 public sealed class Parish
 {
-    public Parish(Guid id, string name, string sector, string city, string state, string address, string? phone, bool isPremium, DateTimeOffset lastScheduleConfirmation)
-    { Id = id; Name = name; Sector = sector; City = city; State = state; Address = address; Phone = phone; IsPremium = isPremium; LastScheduleConfirmation = lastScheduleConfirmation; }
+    public Parish(Guid id, string name, string sector, string city, string state, string address, string? phone, string? imageUrl, bool isPremium, DateTimeOffset lastScheduleConfirmation)
+    { Id = id; Name = name; Sector = sector; City = city; State = state; Address = address; Phone = phone; ImageUrl = imageUrl; IsPremium = isPremium; LastScheduleConfirmation = lastScheduleConfirmation; }
     public Guid Id { get; }
     public string Name { get; }
     public string Sector { get; }
@@ -11,6 +11,7 @@ public sealed class Parish
     public string State { get; }
     public string Address { get; }
     public string? Phone { get; }
+    public string? ImageUrl { get; }
     public bool IsPremium { get; }
     public DateTimeOffset LastScheduleConfirmation { get; }
     public IReadOnlyCollection<MassSchedule> MassSchedules => _massSchedules;
