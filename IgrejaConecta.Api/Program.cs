@@ -10,7 +10,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.Al
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=igreja-conecta.db";
 builder.Services.AddDbContext<ChurchDbContext>(options =>
 {
-    if (connectionString.StartsWith("postgres", StringComparison.OrdinalIgnoreCase)) options.UseNpgsql(connectionString);
+    if (connectionString.StartsWith("postgres", StringComparison.OrdinalIgnoreCase)) options.UseNpgsql(ToNpgsqlConnectionString(connectionString));
     else options.UseSqlite(connectionString);
 });
 builder.Services.AddScoped<IParishRepository, EfParishRepository>();
@@ -26,3 +26,18 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapControllers();
 app.MapFallbackToFile("index.html");
 app.Run();
+
+static string ToNpgsqlConnectionString(string databaseUrl)
+{
+    if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var uri)) return databaseUrl;
+
+    var credentials = uri.UserInfo.Split(':', 2);
+    return new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.IsDefaultPort ? 5432 : uri.Port,
+        Database = uri.AbsolutePath.Trim('/'),
+        Username = Uri.UnescapeDataString(credentials[0]),
+        Password = credentials.Length > 1 ? Uri.UnescapeDataString(credentials[1]) : string.Empty
+    }.ConnectionString;
+}
