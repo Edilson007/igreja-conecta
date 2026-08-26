@@ -23,15 +23,26 @@ public sealed class EfParishRepository(ChurchDbContext db) : IParishRepository
     private static Parish Map(ParishRecord source)
     {
         var parish = new Parish(source.Id, source.Name, source.Sector, source.City, source.State, source.Address, source.Phone, source.ImageUrl, source.IsPremium, source.LastScheduleConfirmation);
-        foreach (var item in source.MassSchedules) parish.AddMassSchedule(new(Enum.Parse<DayOfWeek>(item.Day), TimeOnly.Parse(item.Time), item.Description));
+        foreach (var item in source.MassSchedules) parish.AddMassSchedule(new(ParseDay(item.Day), TimeOnly.Parse(item.Time), item.Description));
         foreach (var item in source.Activities) parish.AddActivity(new(item.Title, item.StartsAt, item.Description));
         foreach (var item in source.Chapels) parish.AddChapel(new(item.Name, item.Address));
         foreach (var item in source.Communities)
         {
             var community = new Community(item.Id, item.Name, item.Address, item.Phone, item.ImageUrl);
-            foreach (var schedule in item.MassSchedules) community.AddMassSchedule(new(Enum.Parse<DayOfWeek>(schedule.Day), TimeOnly.Parse(schedule.Time), schedule.Description));
+            foreach (var schedule in item.MassSchedules) community.AddMassSchedule(new(ParseDay(schedule.Day), TimeOnly.Parse(schedule.Time), schedule.Description));
             parish.AddCommunity(community);
         }
         return parish;
     }
+    private static DayOfWeek ParseDay(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "domingo" or "sunday" => DayOfWeek.Sunday,
+        "segunda" or "segunda-feira" or "monday" => DayOfWeek.Monday,
+        "terça" or "terca" or "terça-feira" or "terca-feira" or "tuesday" => DayOfWeek.Tuesday,
+        "quarta" or "quarta-feira" or "wednesday" => DayOfWeek.Wednesday,
+        "quinta" or "quinta-feira" or "thursday" => DayOfWeek.Thursday,
+        "sexta" or "sexta-feira" or "friday" => DayOfWeek.Friday,
+        "sábado" or "sabado" or "saturday" => DayOfWeek.Saturday,
+        _ => Enum.Parse<DayOfWeek>(value.Trim(), true)
+    };
 }
