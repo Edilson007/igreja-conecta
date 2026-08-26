@@ -13,5 +13,5 @@ export class ParishDetailsComponent implements OnInit {
   constructor(private readonly service: ParishService) {}
   ngOnInit(): void { this.service.getById(this.id).subscribe({ next: value => this.parish = value }); }
   day(value: string): string { return ({ Monday:'Segunda',Tuesday:'Terça',Wednesday:'Quarta',Thursday:'Quinta',Friday:'Sexta',Saturday:'Sábado',Sunday:'Domingo' } as Record<string,string>)[value] || value; }
-  grouped(items: MassSchedule[]): { day: string; times: string[] }[] { return this.order.map(day => ({ day, times: [...new Set(items.filter(x => x.day === day).map(x => x.time))] })).filter(x => x.times.length); }
+  grouped(items: MassSchedule[]): { day: string; times: string[] }[] { return this.order.map(day => ({ day, times: [...new Set(items.filter(x => x.day === day).map(x => String(x.time || 'Horário a confirmar')))] })).filter(x => x.times.length); }
 }
