@@ -2,5 +2,6 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
 import { AppComponent } from './app/app.component';
 import { ParishDetailsComponent } from './app/parish-details.component';
-const root = location.pathname.startsWith('/paroquias/') ? ParishDetailsComponent : AppComponent;
+import { AdminPageComponent } from './app/admin-page.component';
+const root = location.pathname === '/admin' ? AdminPageComponent : location.pathname.startsWith('/paroquias/') ? ParishDetailsComponent : AppComponent;
 bootstrapApplication(root, { providers: [provideHttpClient()] }).catch(console.error);

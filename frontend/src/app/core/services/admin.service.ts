@@ -31,8 +31,8 @@ export class AdminService {
     return this.http.get<ParishForm[]>('/api/admin/parishes', { headers: this.headers(key) });
   }
 
-  create(key: string, parish: ParishForm): Observable<{ id: string }> {
-    return this.http.post<{ id: string }>('/api/admin/parishes', parish, { headers: this.headers(key) });
+  create(key: string, parish: ParishForm): Observable<void> {
+    return this.http.post<void>('/api/admin/parishes', parish, { headers: this.headers(key) });
   }
 
   update(key: string, parish: ParishForm): Observable<void> {
