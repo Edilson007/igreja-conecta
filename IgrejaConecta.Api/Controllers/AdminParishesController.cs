@@ -31,7 +31,7 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
         if (!Authorized(key)) return Unauthorized();
         if (!Valid(request, out var error)) return BadRequest(new { message = error });
         var entity = new ParishRecord { Id = Guid.NewGuid() };
-        Apply(entity, request); db.Parishes.Add(entity); await db.SaveChangesAsync(ct);
+        Apply(db, entity, request); db.Parishes.Add(entity); await db.SaveChangesAsync(ct);
         return Created($"/api/parishes/{entity.Id}", new { entity.Id });
     }
 
@@ -42,7 +42,7 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
         if (!Valid(request, out var error)) return BadRequest(new { message = error });
         var entity = await db.Parishes.Include(x => x.MassSchedules).Include(x => x.Communities).ThenInclude(x => x.MassSchedules).SingleOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null) return NotFound();
-        Apply(entity, request); await db.SaveChangesAsync(ct); return NoContent();
+        Apply(db, entity, request); await db.SaveChangesAsync(ct); return NoContent();
     }
 
     [HttpDelete("{id:guid}")]
@@ -56,10 +56,12 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
 
     private bool Authorized(string? key) => !string.IsNullOrWhiteSpace(configuration["Admin:Key"]) && string.Equals(key, configuration["Admin:Key"], StringComparison.Ordinal);
     private static bool Valid(UpsertParishRequest request, out string message) { message = "Nome, cidade e setor são obrigatórios."; return !string.IsNullOrWhiteSpace(request.Name) && !string.IsNullOrWhiteSpace(request.City) && !string.IsNullOrWhiteSpace(request.Sector); }
-    private static void Apply(ParishRecord entity, UpsertParishRequest request)
+    private static void Apply(ChurchDbContext db, ParishRecord entity, UpsertParishRequest request)
     {
         entity.Name = request.Name.Trim(); entity.City = request.City.Trim(); entity.State = string.IsNullOrWhiteSpace(request.State) ? "MG" : request.State.Trim().ToUpperInvariant(); entity.Sector = request.Sector.Trim(); entity.Address = request.Address?.Trim() ?? string.Empty; entity.Phone = request.Phone?.Trim(); entity.ImageUrl = request.ImageUrl?.Trim(); entity.IsPremium = request.IsPremium; entity.LastScheduleConfirmation = DateTimeOffset.UtcNow;
         entity.MassSchedules.Clear(); foreach (var item in request.MassSchedules.Where(x => !string.IsNullOrWhiteSpace(x.Day) && !string.IsNullOrWhiteSpace(x.Time))) entity.MassSchedules.Add(new MassScheduleRecord { ParishId = entity.Id, Day = item.Day, Time = item.Time, Description = item.Description?.Trim() });
+        db.MassSchedules.RemoveRange(entity.Communities.SelectMany(x => x.MassSchedules));
+        db.Communities.RemoveRange(entity.Communities);
         entity.Communities.Clear(); foreach (var item in (request.Communities ?? []).Where(x => !string.IsNullOrWhiteSpace(x.Name))) entity.Communities.Add(new CommunityRecord { Id = Guid.NewGuid(), ParishId = entity.Id, Name = item.Name.Trim(), Address = item.Address?.Trim() ?? string.Empty, Phone = item.Phone?.Trim(), ImageUrl = item.ImageUrl?.Trim(), MassSchedules = item.MassSchedules.Where(s => !string.IsNullOrWhiteSpace(s.Day) && !string.IsNullOrWhiteSpace(s.Time)).Select(s => new MassScheduleRecord { ParishId = entity.Id, Day = s.Day, Time = s.Time, Description = s.Description?.Trim() }).ToList() });
     }
 }
