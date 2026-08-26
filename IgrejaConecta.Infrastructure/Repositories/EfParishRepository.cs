@@ -23,7 +23,7 @@ public sealed class EfParishRepository(ChurchDbContext db) : IParishRepository
     private static Parish Map(ParishRecord source)
     {
         var parish = new Parish(source.Id, source.Name, source.Sector, source.City, source.State, source.Address, source.Phone, source.ImageUrl, source.IsPremium, source.LastScheduleConfirmation);
-        foreach (var item in source.MassSchedules) parish.AddMassSchedule(new(ParseDay(item.Day), TimeOnly.Parse(item.Time), item.Description));
+        foreach (var item in source.MassSchedules.Where(x => x.CommunityId is null)) parish.AddMassSchedule(new(ParseDay(item.Day), TimeOnly.Parse(item.Time), item.Description));
         foreach (var item in source.Activities) parish.AddActivity(new(item.Title, item.StartsAt, item.Description));
         foreach (var item in source.Chapels) parish.AddChapel(new(item.Name, item.Address));
         foreach (var item in source.Communities)

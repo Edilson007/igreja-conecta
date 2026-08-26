@@ -20,7 +20,7 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
 
         return Ok(parishes.Select(x => new AdminParishDto(
             x.Id, x.Name, x.Sector, x.City, x.State, x.Address, x.Phone, x.ImageUrl, x.IsPremium,
-            x.MassSchedules.OrderBy(s => s.Day).ThenBy(s => s.Time)
+            x.MassSchedules.Where(s => s.CommunityId is null).OrderBy(s => s.Day).ThenBy(s => s.Time)
                 .Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description)).ToArray(),
             x.Communities.OrderBy(c => c.Name).Select(c => new AdminCommunityDto(c.Id, c.Name, c.Address, c.Phone, c.ImageUrl, c.MassSchedules.OrderBy(s => s.Day).ThenBy(s => s.Time).Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description)).ToArray())).ToArray())).ToArray());
     }
