@@ -42,6 +42,10 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
         if (!Valid(request, out var error)) return BadRequest(new { message = error });
         var entity = await db.Parishes.Include(x => x.MassSchedules).Include(x => x.Communities).ThenInclude(x => x.MassSchedules).SingleOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null) return NotFound();
+        db.MassSchedules.RemoveRange(entity.Communities.SelectMany(x => x.MassSchedules));
+        db.Communities.RemoveRange(entity.Communities);
+        await db.SaveChangesAsync(ct);
+        entity = await db.Parishes.Include(x => x.MassSchedules).Include(x => x.Communities).ThenInclude(x => x.MassSchedules).SingleAsync(x => x.Id == id, ct);
         Apply(db, entity, request); await db.SaveChangesAsync(ct); return NoContent();
     }
 
@@ -60,8 +64,6 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
     {
         entity.Name = request.Name.Trim(); entity.City = request.City.Trim(); entity.State = string.IsNullOrWhiteSpace(request.State) ? "MG" : request.State.Trim().ToUpperInvariant(); entity.Sector = request.Sector.Trim(); entity.Address = request.Address?.Trim() ?? string.Empty; entity.Phone = request.Phone?.Trim(); entity.ImageUrl = request.ImageUrl?.Trim(); entity.IsPremium = request.IsPremium; entity.LastScheduleConfirmation = DateTimeOffset.UtcNow;
         entity.MassSchedules.Clear(); foreach (var item in request.MassSchedules.Where(x => !string.IsNullOrWhiteSpace(x.Day) && !string.IsNullOrWhiteSpace(x.Time))) entity.MassSchedules.Add(new MassScheduleRecord { ParishId = entity.Id, Day = item.Day, Time = item.Time, Description = item.Description?.Trim() });
-        db.MassSchedules.RemoveRange(entity.Communities.SelectMany(x => x.MassSchedules));
-        db.Communities.RemoveRange(entity.Communities);
         entity.Communities.Clear(); foreach (var item in (request.Communities ?? []).Where(x => !string.IsNullOrWhiteSpace(x.Name))) entity.Communities.Add(new CommunityRecord { Id = Guid.NewGuid(), ParishId = entity.Id, Name = item.Name.Trim(), Address = item.Address?.Trim() ?? string.Empty, Phone = item.Phone?.Trim(), ImageUrl = item.ImageUrl?.Trim(), MassSchedules = item.MassSchedules.Where(s => !string.IsNullOrWhiteSpace(s.Day) && !string.IsNullOrWhiteSpace(s.Time)).Select(s => new MassScheduleRecord { ParishId = entity.Id, Day = s.Day, Time = s.Time, Description = s.Description?.Trim() }).ToList() });
     }
 }
