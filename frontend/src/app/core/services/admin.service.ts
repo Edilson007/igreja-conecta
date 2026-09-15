@@ -43,6 +43,12 @@ export class AdminService {
     return this.http.delete<void>(`/api/admin/parishes/${id}`, { headers: this.headers(key) });
   }
 
+  uploadImage(key: string, file: File): Observable<{ url: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ url: string }>('/api/admin/images', form, { headers: this.headers(key) });
+  }
+
   private headers(key: string): HttpHeaders {
     return new HttpHeaders({ 'X-Admin-Key': key });
   }
