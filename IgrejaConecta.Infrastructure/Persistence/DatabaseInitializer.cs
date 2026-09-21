@@ -11,6 +11,8 @@ public static class DatabaseInitializer
         {
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Parishes\" ADD COLUMN IF NOT EXISTS \"ImageUrl\" text;", ct);
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"MassSchedules\" ADD COLUMN IF NOT EXISTS \"CommunityId\" uuid NULL;", ct);
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"MassSchedules\" ADD COLUMN IF NOT EXISTS \"Frequency\" text NULL;", ct);
+            await db.Database.ExecuteSqlRawAsync("UPDATE \"MassSchedules\" SET \"Frequency\" = 'Weekly' WHERE \"Frequency\" IS NULL;", ct);
             await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \"Communities\" (\"Id\" uuid NOT NULL PRIMARY KEY, \"ParishId\" uuid NOT NULL, \"Name\" character varying(200) NOT NULL, \"Address\" text NOT NULL, \"Phone\" text NULL, \"ImageUrl\" character varying(1000) NULL);", ct);
             await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Communities_ParishId\" ON \"Communities\" (\"ParishId\");", ct);
         }

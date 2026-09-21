@@ -56,7 +56,7 @@ public sealed class ParishRecord
     public List<ChapelRecord> Chapels { get; set; } = [];
     public List<CommunityRecord> Communities { get; set; } = [];
 }
-public sealed class MassScheduleRecord { public int Id { get; set; } public Guid ParishId { get; set; } public Guid? CommunityId { get; set; } public string Day { get; set; } = string.Empty; public string Time { get; set; } = string.Empty; public string? Description { get; set; } }
+public sealed class MassScheduleRecord { public int Id { get; set; } public Guid ParishId { get; set; } public Guid? CommunityId { get; set; } public string Day { get; set; } = string.Empty; public string Time { get; set; } = string.Empty; public string? Description { get; set; } public string? Frequency { get; set; } }
 public sealed class CommunityRecord { public Guid Id { get; set; } public Guid ParishId { get; set; } public string Name { get; set; } = string.Empty; public string Address { get; set; } = string.Empty; public string? Phone { get; set; } public string? ImageUrl { get; set; } public List<MassScheduleRecord> MassSchedules { get; set; } = []; }
 public sealed class ActivityRecord { public int Id { get; set; } public Guid ParishId { get; set; } public string Title { get; set; } = string.Empty; public DateTimeOffset StartsAt { get; set; } public string? Description { get; set; } }
 public sealed class ChapelRecord { public int Id { get; set; } public Guid ParishId { get; set; } public string Name { get; set; } = string.Empty; public string? Address { get; set; } }

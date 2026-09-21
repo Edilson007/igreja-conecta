@@ -6,6 +6,7 @@ export interface MassForm {
   day: string;
   time: string;
   description?: string;
+  frequency?: string;
 }
 
 export interface ParishForm {

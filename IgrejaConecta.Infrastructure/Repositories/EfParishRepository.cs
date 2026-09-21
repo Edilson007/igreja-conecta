@@ -23,13 +23,13 @@ public sealed class EfParishRepository(ChurchDbContext db) : IParishRepository
     private static Parish Map(ParishRecord source)
     {
         var parish = new Parish(source.Id, source.Name, source.Sector, source.City, source.State, source.Address, source.Phone, source.ImageUrl, source.IsPremium, source.LastScheduleConfirmation);
-        foreach (var item in source.MassSchedules.Where(x => x.CommunityId is null)) parish.AddMassSchedule(new(ParseDay(item.Day), TimeOnly.Parse(item.Time), item.Description));
+        foreach (var item in source.MassSchedules.Where(x => x.CommunityId is null)) parish.AddMassSchedule(new(ParseDay(item.Day), TimeOnly.Parse(item.Time), item.Description, item.Frequency ?? "Weekly"));
         foreach (var item in source.Activities) parish.AddActivity(new(item.Title, item.StartsAt, item.Description));
         foreach (var item in source.Chapels) parish.AddChapel(new(item.Name, item.Address));
         foreach (var item in source.Communities)
         {
             var community = new Community(item.Id, item.Name, item.Address, item.Phone, item.ImageUrl);
-            foreach (var schedule in item.MassSchedules) community.AddMassSchedule(new(ParseDay(schedule.Day), TimeOnly.Parse(schedule.Time), schedule.Description));
+            foreach (var schedule in item.MassSchedules) community.AddMassSchedule(new(ParseDay(schedule.Day), TimeOnly.Parse(schedule.Time), schedule.Description, schedule.Frequency ?? "Weekly"));
             parish.AddCommunity(community);
         }
         return parish;

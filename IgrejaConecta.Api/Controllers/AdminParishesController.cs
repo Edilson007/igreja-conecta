@@ -21,8 +21,8 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
         return Ok(parishes.Select(x => new AdminParishDto(
             x.Id, x.Name, x.Sector, x.City, x.State, x.Address, x.Phone, x.ImageUrl, x.IsPremium,
             x.MassSchedules.Where(s => s.CommunityId is null).OrderBy(s => s.Day).ThenBy(s => s.Time)
-                .Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description)).ToArray(),
-            x.Communities.OrderBy(c => c.Name).Select(c => new AdminCommunityDto(c.Id, c.Name, c.Address, c.Phone, c.ImageUrl, c.MassSchedules.OrderBy(s => s.Day).ThenBy(s => s.Time).Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description)).ToArray())).ToArray())).ToArray());
+                .Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description, s.Frequency ?? "Weekly")).ToArray(),
+            x.Communities.OrderBy(c => c.Name).Select(c => new AdminCommunityDto(c.Id, c.Name, c.Address, c.Phone, c.ImageUrl, c.MassSchedules.OrderBy(s => s.Day).ThenBy(s => s.Time).Select(s => new AdminMassScheduleDto(s.Day, s.Time, s.Description, s.Frequency ?? "Weekly")).ToArray())).ToArray())).ToArray());
     }
 
     [HttpPost]
@@ -63,14 +63,15 @@ public sealed class AdminParishesController(ChurchDbContext db, IConfiguration c
     private static void Apply(ChurchDbContext db, ParishRecord entity, UpsertParishRequest request)
     {
         entity.Name = request.Name.Trim(); entity.City = request.City.Trim(); entity.State = string.IsNullOrWhiteSpace(request.State) ? "MG" : request.State.Trim().ToUpperInvariant(); entity.Sector = request.Sector.Trim(); entity.Address = request.Address?.Trim() ?? string.Empty; entity.Phone = request.Phone?.Trim(); entity.ImageUrl = request.ImageUrl?.Trim(); entity.IsPremium = request.IsPremium; entity.LastScheduleConfirmation = DateTimeOffset.UtcNow;
-        entity.MassSchedules.Clear(); foreach (var item in request.MassSchedules.Where(x => !string.IsNullOrWhiteSpace(x.Day) && !string.IsNullOrWhiteSpace(x.Time))) entity.MassSchedules.Add(new MassScheduleRecord { ParishId = entity.Id, Day = item.Day, Time = item.Time, Description = item.Description?.Trim() });
-        entity.Communities.Clear(); foreach (var item in (request.Communities ?? []).Where(x => !string.IsNullOrWhiteSpace(x.Name))) { var community = new CommunityRecord { Id = Guid.NewGuid(), ParishId = entity.Id, Name = item.Name.Trim(), Address = item.Address?.Trim() ?? string.Empty, Phone = item.Phone?.Trim(), ImageUrl = item.ImageUrl?.Trim() }; db.Communities.Add(community); db.MassSchedules.AddRange(item.MassSchedules.Where(s => !string.IsNullOrWhiteSpace(s.Day) && !string.IsNullOrWhiteSpace(s.Time)).Select(s => new MassScheduleRecord { ParishId = entity.Id, CommunityId = community.Id, Day = s.Day, Time = s.Time, Description = s.Description?.Trim() })); }
+        entity.MassSchedules.Clear(); foreach (var item in request.MassSchedules.Where(x => !string.IsNullOrWhiteSpace(x.Day) && !string.IsNullOrWhiteSpace(x.Time))) entity.MassSchedules.Add(new MassScheduleRecord { ParishId = entity.Id, Day = item.Day, Time = item.Time, Description = item.Description?.Trim(), Frequency = FrequencyOrWeekly(item.Frequency) });
+        entity.Communities.Clear(); foreach (var item in (request.Communities ?? []).Where(x => !string.IsNullOrWhiteSpace(x.Name))) { var community = new CommunityRecord { Id = Guid.NewGuid(), ParishId = entity.Id, Name = item.Name.Trim(), Address = item.Address?.Trim() ?? string.Empty, Phone = item.Phone?.Trim(), ImageUrl = item.ImageUrl?.Trim() }; db.Communities.Add(community); db.MassSchedules.AddRange(item.MassSchedules.Where(s => !string.IsNullOrWhiteSpace(s.Day) && !string.IsNullOrWhiteSpace(s.Time)).Select(s => new MassScheduleRecord { ParishId = entity.Id, CommunityId = community.Id, Day = s.Day, Time = s.Time, Description = s.Description?.Trim(), Frequency = FrequencyOrWeekly(s.Frequency) })); }
     }
+    private static string FrequencyOrWeekly(string? frequency) => frequency is "Biweekly" or "Monthly" or "SpecificDates" or "Occasional" ? frequency : "Weekly";
 }
 
 public sealed record UpsertParishRequest(string Name, string Sector, string City, string? State, string? Address, string? Phone, string? ImageUrl, bool IsPremium, IReadOnlyCollection<UpsertMassScheduleRequest> MassSchedules, IReadOnlyCollection<UpsertCommunityRequest>? Communities = null);
-public sealed record UpsertMassScheduleRequest(string Day, string Time, string? Description);
+public sealed record UpsertMassScheduleRequest(string Day, string Time, string? Description, string? Frequency = null);
 public sealed record UpsertCommunityRequest(string Name, string? Address, string? Phone, string? ImageUrl, IReadOnlyCollection<UpsertMassScheduleRequest> MassSchedules);
 public sealed record AdminParishDto(Guid Id, string Name, string Sector, string City, string State, string Address, string? Phone, string? ImageUrl, bool IsPremium, IReadOnlyCollection<AdminMassScheduleDto> MassSchedules, IReadOnlyCollection<AdminCommunityDto> Communities);
-public sealed record AdminMassScheduleDto(string Day, string Time, string? Description);
+public sealed record AdminMassScheduleDto(string Day, string Time, string? Description, string Frequency);
 public sealed record AdminCommunityDto(Guid Id, string Name, string Address, string? Phone, string? ImageUrl, IReadOnlyCollection<AdminMassScheduleDto> MassSchedules);

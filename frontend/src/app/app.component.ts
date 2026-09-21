@@ -18,7 +18,8 @@ export class AppComponent implements OnInit {
   ngOnInit(): void { this.search(); }
   search(): void { this.loading = true; this.selectedParish = undefined; this.parishService.search(this.city, this.sector, this.query).subscribe({ next: value => { this.parishes = value; this.loading = false; }, error: () => { this.parishes = []; this.loading = false; } }); }
   dayName(day: string): string { return dayNames[day] || day; }
-  groupedSchedules(schedules: MassSchedule[]): { day: string; times: string[] }[] { return days.map(day => { const times = [...new Set(schedules.filter(x => x.day === day).map(x => x.time))]; return { day, times: times.length > 1 ? [times.join(' – ')] : times }; }).filter(x => x.times.length); }
+  groupedSchedules(schedules: MassSchedule[]): { day: string; times: string[] }[] { return days.map(day => { const times = [...new Set(schedules.filter(x => x.day === day).map(x => this.scheduleText(x)))]; return { day, times: times.length > 1 ? [times.join(' • ')] : times }; }).filter(x => x.times.length); }
+  private scheduleText(schedule: MassSchedule): string { const frequency = ({ Weekly: 'Semanal', Biweekly: 'Quinzenal', Monthly: 'Mensal', SpecificDates: 'Datas específicas', Occasional: 'Eventual' } as Record<string, string>)[schedule.frequency || 'Weekly'] || 'Semanal'; const detail = schedule.description?.trim(); return frequency === 'Semanal' && !detail ? schedule.time : `${schedule.time} · ${frequency}${detail ? ` — ${detail}` : ''}`; }
   openDetails(parish: Parish): void { this.selectedParish = parish; }
   closeDetails(): void { this.selectedParish = undefined; }
 }

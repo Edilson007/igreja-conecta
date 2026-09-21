@@ -13,5 +13,6 @@ export class ParishDetailsComponent implements OnInit {
   constructor(private readonly service: ParishService) {}
   ngOnInit(): void { this.service.getById(this.id).subscribe({ next: value => { this.parish = value; this.loading = false; }, error: () => this.loading = false }); }
   day(value: string): string { return ({ Monday:'Segunda',Tuesday:'Terça',Wednesday:'Quarta',Thursday:'Quinta',Friday:'Sexta',Saturday:'Sábado',Sunday:'Domingo' } as Record<string,string>)[value] || value; }
-  grouped(items: MassSchedule[]): { day: string; times: string[] }[] { return this.order.map(day => ({ day, times: [...new Set(items.filter(x => x.day === day).map(x => String(x.time || 'Horário a confirmar')))] })).filter(x => x.times.length); }
+  grouped(items: MassSchedule[]): { day: string; times: string[] }[] { return this.order.map(day => ({ day, times: [...new Set(items.filter(x => x.day === day).map(x => this.scheduleText(x)))] })).filter(x => x.times.length); }
+  private scheduleText(schedule: MassSchedule): string { const frequency = ({ Weekly: 'Semanal', Biweekly: 'Quinzenal', Monthly: 'Mensal', SpecificDates: 'Datas específicas', Occasional: 'Eventual' } as Record<string, string>)[schedule.frequency || 'Weekly'] || 'Semanal'; const detail = schedule.description?.trim(); const time = schedule.time || 'Horário a confirmar'; return frequency === 'Semanal' && !detail ? time : `${time} · ${frequency}${detail ? ` — ${detail}` : ''}`; }
 }
