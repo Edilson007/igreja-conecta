@@ -12,5 +12,8 @@ public sealed class ParishesController(ParishService service) : ControllerBase
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ParishDto>> GetById(Guid id, CancellationToken ct)
-        => await service.GetByIdAsync(id, ct) is { } parish ? Ok(parish) : NotFound();
+    {
+        var parish = await service.GetByIdAsync(id, ct);
+        return parish is { IsPremium: true } ? Ok(parish) : NotFound();
+    }
 }
