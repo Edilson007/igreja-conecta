@@ -14,7 +14,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.Al
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=igreja-conecta.db";
 builder.Services.AddDbContext<ChurchDbContext>(options =>
 {
-    if (connectionString.StartsWith("postgres", StringComparison.OrdinalIgnoreCase)) options.UseNpgsql(ToNpgsqlConnectionString(connectionString));
+    if (IsPostgresConnectionString(connectionString)) options.UseNpgsql(ToNpgsqlConnectionString(connectionString));
     else options.UseSqlite(connectionString);
 });
 builder.Services.AddScoped<IParishRepository, EfParishRepository>();
@@ -45,3 +45,7 @@ static string ToNpgsqlConnectionString(string databaseUrl)
         Password = credentials.Length > 1 ? Uri.UnescapeDataString(credentials[1]) : string.Empty
     }.ConnectionString;
 }
+
+static bool IsPostgresConnectionString(string connectionString) =>
+    connectionString.StartsWith("postgres", StringComparison.OrdinalIgnoreCase) ||
+    connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase);

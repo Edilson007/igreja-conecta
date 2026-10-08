@@ -1,5 +1,12 @@
+.git
+.github
+.vs
 **/bin
 **/obj
 frontend/node_modules
+frontend/.angular
 frontend/dist
-.git
+*.db
+*.db-shm
+*.db-wal
+.env
