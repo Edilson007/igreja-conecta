@@ -23,6 +23,7 @@ export interface ParishForm {
   communities?: CommunityForm[];
 }
 export interface CommunityForm { id?: string; name: string; address: string; phone?: string; imageUrl?: string; massSchedules: MassForm[]; }
+export interface ParishUserForm { name: string; email: string; password: string; role: 'Administrator'|'Editor'|'Publisher'; }
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -48,6 +49,10 @@ export class AdminService {
     const form = new FormData();
     form.append('file', file);
     return this.http.post<{ url: string }>('/api/admin/images', form, { headers: this.headers(key) });
+  }
+
+  createUser(key: string, parishId: string, user: ParishUserForm): Observable<void> {
+    return this.http.post<void>(`/api/admin/parishes/${parishId}/users`, user, { headers: this.headers(key) });
   }
 
   private headers(key: string): HttpHeaders {
