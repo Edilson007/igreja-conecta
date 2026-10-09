@@ -15,6 +15,10 @@ public static class DatabaseInitializer
             await db.Database.ExecuteSqlRawAsync("UPDATE \"MassSchedules\" SET \"Frequency\" = 'Weekly' WHERE \"Frequency\" IS NULL;", ct);
             await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \"Communities\" (\"Id\" uuid NOT NULL PRIMARY KEY, \"ParishId\" uuid NOT NULL, \"Name\" character varying(200) NOT NULL, \"Address\" text NOT NULL, \"Phone\" text NULL, \"ImageUrl\" character varying(1000) NULL);", ct);
             await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_Communities_ParishId\" ON \"Communities\" (\"ParishId\");", ct);
+            await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \"ParishUsers\" (\"Id\" uuid NOT NULL PRIMARY KEY, \"ParishId\" uuid NOT NULL, \"Name\" character varying(160) NOT NULL, \"Email\" character varying(320) NOT NULL, \"PasswordHash\" character varying(1000) NOT NULL, \"Role\" character varying(40) NOT NULL, \"IsActive\" boolean NOT NULL, \"CreatedAt\" timestamp with time zone NOT NULL);", ct);
+            await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ParishUsers_ParishId_Email\" ON \"ParishUsers\" (\"ParishId\", \"Email\");", ct);
+            await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \"PlusContents\" (\"Id\" uuid NOT NULL PRIMARY KEY, \"ParishId\" uuid NOT NULL, \"CreatedByUserId\" uuid NOT NULL, \"ReviewedByUserId\" uuid NULL, \"Category\" character varying(40) NOT NULL, \"Status\" character varying(40) NOT NULL, \"Title\" character varying(200) NOT NULL, \"EventStartsAt\" timestamp with time zone NULL, \"DayOfWeek\" text NULL, \"Time\" text NULL, \"Location\" text NULL, \"ImageUrl\" character varying(1000) NULL, \"Description\" text NULL, \"CreatedAt\" timestamp with time zone NOT NULL, \"PublishedAt\" timestamp with time zone NULL);", ct);
+            await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_PlusContents_ParishId_Status_Category\" ON \"PlusContents\" (\"ParishId\", \"Status\", \"Category\");", ct);
         }
         if (await db.Parishes.AnyAsync(ct)) return;
 
