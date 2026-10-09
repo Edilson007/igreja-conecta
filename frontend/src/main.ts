@@ -5,7 +5,10 @@ import { ParishDetailsComponent } from './app/parish-details.component';
 import { AdminPageComponent } from './app/admin-page.component';
 import { AdminAccessPageComponent } from './app/admin-access-page.component';
 import { PortalPageComponent } from './app/portal-page.component';
-const path = location.pathname.replace(/\/+$/, '') || '/';
+// The local static server does not rewrite deep links to index.html. Accepting
+// hash routes keeps the same screens accessible in development and production.
+const requestedPath = location.hash.startsWith('#/') ? location.hash.slice(1) : location.pathname;
+const path = requestedPath.replace(/\/+$/, '') || '/';
 const options = { providers: [provideHttpClient()] };
 if (path === '/portal') bootstrapApplication(PortalPageComponent, options).catch(console.error);
 else if (path === '/admin/acessos') bootstrapApplication(AdminAccessPageComponent, options).catch(console.error);
