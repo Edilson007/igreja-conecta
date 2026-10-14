@@ -4,6 +4,7 @@
 frontend/node_modules/
 frontend/.angular/
 frontend/dist/
+frontend/out-tsc/
 *.db
 *.db-shm
 *.db-wal

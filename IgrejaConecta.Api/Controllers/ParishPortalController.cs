@@ -19,14 +19,20 @@ public sealed class ParishPortalController(ChurchDbContext db) : ControllerBase
         if (user is null || !Passwords.Verify(request.Password, user.PasswordHash)) return Unauthorized();
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         Sessions[token] = new PortalSession(user.Id, user.ParishId, user.Role, DateTimeOffset.UtcNow.AddHours(12));
-        return Ok(new PortalLoginDto(token, user.Name, user.Role, user.ParishId));
+        var parish = await db.Parishes.AsNoTracking().SingleAsync(x => x.Id == user.ParishId, ct);
+        return Ok(new PortalLoginDto(token, user.Name, user.Role, user.ParishId, parish.Name, parish.City, parish.IsPremium));
     }
 
     [HttpGet("contents")]
     public async Task<ActionResult<IReadOnlyCollection<PortalContentDto>>> List([FromHeader(Name = "X-Portal-Token")] string? token, CancellationToken ct)
     {
         var session = Require(token); if (session is null) return Unauthorized();
-        return Ok(await db.PlusContents.Where(x => x.ParishId == session.ParishId).OrderByDescending(x => x.CreatedAt).Select(x => ToDto(x)).ToArrayAsync(ct));
+        // SQLite cannot order DateTimeOffset values. Filter by parish in the
+        // database first, then compare the dates in .NET (including offsets).
+        var contents = await db.PlusContents.AsNoTracking()
+            .Where(x => x.ParishId == session.ParishId)
+            .ToArrayAsync(ct);
+        return Ok(contents.OrderByDescending(x => x.CreatedAt).Select(ToDto).ToArray());
     }
 
     [HttpPost("contents")]
@@ -41,13 +47,45 @@ public sealed class ParishPortalController(ChurchDbContext db) : ControllerBase
     [HttpPost("contents/{id:guid}/submit")]
     public async Task<ActionResult> Submit(Guid id, [FromHeader(Name = "X-Portal-Token")] string? token, CancellationToken ct)
     {
-        var session = Require(token); if (session is null) return Unauthorized(); var item = await Find(id, session.ParishId, ct); if (item is null) return NotFound(); item.Status = PlusStatus.PendingReview; await db.SaveChangesAsync(ct); return NoContent();
+        var session = Require(token); if (session is null) return Unauthorized();
+        var item = await Find(id, session.ParishId, ct); if (item is null) return NotFound();
+        if (item.Status is not (PlusStatus.Draft or PlusStatus.ChangesRequested)) return BadRequest("Somente rascunhos ou devoluções podem ser enviados.");
+        item.Status = PlusStatus.PendingReview; await db.SaveChangesAsync(ct); return NoContent();
     }
 
     [HttpPost("contents/{id:guid}/publish")]
     public async Task<ActionResult> Publish(Guid id, [FromHeader(Name = "X-Portal-Token")] string? token, CancellationToken ct)
     {
-        var session = Require(token); if (session is null) return Unauthorized(); if (session.Role is not (ParishRole.Administrator or ParishRole.Publisher)) return Forbid(); var item = await Find(id, session.ParishId, ct); if (item is null) return NotFound(); item.Status = PlusStatus.Published; item.ReviewedByUserId = session.UserId; item.PublishedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(ct); return NoContent();
+        var session = Require(token); if (session is null) return Unauthorized();
+        if (session.Role is not (ParishRole.Administrator or ParishRole.Publisher)) return StatusCode(403);
+        var item = await Find(id, session.ParishId, ct); if (item is null) return NotFound();
+        if (item.Status != PlusStatus.PendingReview) return BadRequest("Envie a publicação para aprovação primeiro.");
+        item.Status = PlusStatus.Published; item.ReviewedByUserId = session.UserId; item.PublishedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct); return NoContent();
+    }
+
+    [HttpPut("contents/{id:guid}")]
+    public async Task<ActionResult> Update(Guid id, [FromHeader(Name = "X-Portal-Token")] string? token, PortalContentRequest request, CancellationToken ct)
+    {
+        var session = Require(token); if (session is null) return Unauthorized();
+        var item = await Find(id, session.ParishId, ct); if (item is null) return NotFound();
+        if (item.Status is not (PlusStatus.Draft or PlusStatus.ChangesRequested)) return BadRequest("Retire a publicação antes de editar.");
+        if (!Valid(request)) return BadRequest("Título e categoria são obrigatórios.");
+        item.Title = request.Title.Trim(); item.Category = request.Category; item.EventStartsAt = request.EventStartsAt;
+        item.DayOfWeek = request.DayOfWeek?.Trim(); item.Time = request.Time?.Trim(); item.Location = request.Location?.Trim();
+        item.ImageUrl = request.ImageUrl?.Trim(); item.Description = request.Description?.Trim();
+        await db.SaveChangesAsync(ct); return NoContent();
+    }
+
+    [HttpPost("contents/{id:guid}/return")]
+    public async Task<ActionResult> ReturnForChanges(Guid id, [FromHeader(Name = "X-Portal-Token")] string? token, CancellationToken ct)
+    {
+        var session = Require(token); if (session is null) return Unauthorized();
+        if (session.Role is not (ParishRole.Administrator or ParishRole.Publisher)) return StatusCode(403);
+        var item = await Find(id, session.ParishId, ct); if (item is null) return NotFound();
+        if (item.Status is not (PlusStatus.PendingReview or PlusStatus.Published)) return BadRequest("A publicação já está em edição.");
+        item.Status = PlusStatus.ChangesRequested; item.PublishedAt = null; item.ReviewedByUserId = session.UserId;
+        await db.SaveChangesAsync(ct); return NoContent();
     }
 
     private PortalSession? Require(string? token) => token is not null && Sessions.TryGetValue(token, out var session) && session.ExpiresAt > DateTimeOffset.UtcNow ? session : null;
@@ -57,7 +95,7 @@ public sealed class ParishPortalController(ChurchDbContext db) : ControllerBase
 }
 
 public sealed record PortalLoginRequest(Guid ParishId, string Email, string Password);
-public sealed record PortalLoginDto(string Token, string Name, string Role, Guid ParishId);
+public sealed record PortalLoginDto(string Token, string Name, string Role, Guid ParishId, string ParishName, string ParishCity, bool IsPremium);
 public sealed record PortalContentRequest(string Category, string Title, DateTimeOffset? EventStartsAt, string? DayOfWeek, string? Time, string? Location, string? ImageUrl, string? Description);
 public sealed record PortalContentDto(Guid Id, string Category, string Status, string Title, DateTimeOffset? EventStartsAt, string? DayOfWeek, string? Time, string? Location, string? ImageUrl, string? Description, DateTimeOffset CreatedAt);
 sealed record PortalSession(Guid UserId, Guid ParishId, string Role, DateTimeOffset ExpiresAt);

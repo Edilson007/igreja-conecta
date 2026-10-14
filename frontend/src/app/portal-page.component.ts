@@ -1,9 +1,53 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Parish } from './core/models/parish';
-
 type Content={id:string;category:string;status:string;title:string;eventStartsAt?:string;dayOfWeek?:string;time?:string;location?:string;imageUrl?:string;description?:string};
-@Component({selector:'app-portal',standalone:true,imports:[CommonModule,FormsModule],styles:[`:host{font-family:Arial,sans-serif;color:#173d36}.wrap{max-width:1020px;margin:35px auto;padding:0 20px}.login,.card{background:white;border:1px solid #dbe6df;border-radius:14px;padding:24px}.login{max-width:450px;margin:auto}.fields{display:grid;gap:10px}.fields label{display:grid;gap:5px;font-size:13px;font-weight:bold}input,select,textarea{padding:10px;border:1px solid #cad8cf;border-radius:7px;font:inherit}.primary{border:0;background:#16634c;color:#fff;border-radius:7px;padding:11px 15px;font-weight:bold}.grid{display:grid;grid-template-columns:360px 1fr;gap:20px}.item{padding:14px 0;border-bottom:1px solid #e5ece7}.status{color:#a33}.tag{font-size:12px;color:#a77722;font-weight:bold}@media(max-width:760px){.grid{grid-template-columns:1fr}}`],template:`<main class="wrap"><section class="login" *ngIf="!token"><h1>Área Plus da paróquia</h1><div class="fields"><label>Paróquia<select [(ngModel)]="parishId"><option value="">Selecione</option><option *ngFor="let p of parishes" [value]="p.id">{{p.name}} — {{p.city}}</option></select></label><label>E-mail<input [(ngModel)]="email" type="email"></label><label>Senha<input [(ngModel)]="password" type="password"></label></div><p><button class="primary" (click)="login()">Entrar</button></p><p class="status">{{message}}</p></section><section *ngIf="token"><p><b>{{name}}</b> · {{roleLabel}}</p><div class="grid"><section class="card"><h2>Nova publicação</h2><div class="fields"><label>Categoria<select [(ngModel)]="form.category"><option value="Event">Evento</option><option value="PrayerGroup">Grupo de oração</option><option value="YouthGroup">Grupo de jovens</option><option value="Notice">Aviso ou iniciativa</option></select></label><label>Título<input [(ngModel)]="form.title"></label><label *ngIf="form.category==='Event'">Data e hora<input [(ngModel)]="form.eventStartsAt" type="datetime-local"></label><label *ngIf="form.category!=='Event'">Dia da semana<input [(ngModel)]="form.dayOfWeek"></label><label *ngIf="form.category!=='Event'">Horário<input [(ngModel)]="form.time"></label><label>Local<input [(ngModel)]="form.location"></label><label *ngIf="form.category==='Event'">URL da imagem<input [(ngModel)]="form.imageUrl"></label><label>Descrição<textarea [(ngModel)]="form.description"></textarea></label></div><p><button class="primary" (click)="create()">Salvar rascunho</button></p></section><section class="card"><h2>Publicações</h2><div class="item" *ngFor="let item of contents"><span class="tag">{{item.category}} · {{item.status}}</span><h3>{{item.title}}</h3><p>{{item.description}}</p><button *ngIf="item.status==='Draft'||item.status==='ChangesRequested'" (click)="submit(item.id)">Enviar para aprovação</button> <button *ngIf="canPublish&&item.status==='PendingReview'" (click)="publish(item.id)">Publicar</button></div></section></div></section></main>`})
-export class PortalPageComponent { parishes:Parish[]=[];parishId='';email='';password='';token='';name='';role='';message='';contents:Content[]=[];form:any={category:'Event',title:'',eventStartsAt:'',dayOfWeek:'',time:'',location:'',imageUrl:'',description:''};constructor(private http:HttpClient){http.get<Parish[]>('/api/parishes').subscribe(x=>this.parishes=x)}get canPublish(){return this.role==='Administrator'||this.role==='Publisher'}get roleLabel(){return this.role==='Administrator'?'Administrador paroquial':this.role==='Publisher'?'Publicador':'Editor'}headers(){return new HttpHeaders({'X-Portal-Token':this.token})}login(){this.http.post<any>('/api/portal/login',{parishId:this.parishId,email:this.email,password:this.password}).subscribe({next:x=>{this.token=x.token;this.name=x.name;this.role=x.role;this.load()},error:()=>this.message='Dados de acesso inválidos.'})}load(){this.http.get<Content[]>('/api/portal/contents',{headers:this.headers()}).subscribe(x=>this.contents=x)}create(){this.http.post('/api/portal/contents',{...this.form,eventStartsAt:this.form.eventStartsAt||null},{headers:this.headers()}).subscribe({next:()=>{this.form={category:'Event',title:'',eventStartsAt:'',dayOfWeek:'',time:'',location:'',imageUrl:'',description:''};this.load()},error:()=>this.message='Preencha título e categoria.'})}submit(id:string){this.http.post(`/api/portal/contents/${id}/submit`,{}, {headers:this.headers()}).subscribe(()=>this.load())}publish(id:string){this.http.post(`/api/portal/contents/${id}/publish`,{}, {headers:this.headers()}).subscribe(()=>this.load())}}
+@Component({selector:'app-root',standalone:true,imports:[CommonModule,FormsModule],
+templateUrl:'./portal-page.component.html',styleUrls:['./portal-page.component.css','./portal-links-footer.css']})
+export class PortalPageComponent {
+  parishes:Parish[]=[]; parishId=''; parishName=''; parishCity=''; isPremium=false;
+  email=''; password=''; token=''; name=''; role=''; message=''; busy=false;
+  contents:Content[]=[]; editingId=''; form=this.emptyForm();
+  readonly categories=[{value:'Event',label:'Eventos'},{value:'PrayerGroup',label:'Grupos de oração'},{value:'YouthGroup',label:'Grupos de jovens'},{value:'Notice',label:'Outros eventos e avisos'}];
+  constructor(private http:HttpClient){http.get<Parish[]>('/api/parishes').subscribe({next:x=>this.parishes=x,error:e=>this.fail(e)});}
+  emptyForm(){return {category:'Event',title:'',eventStartsAt:'',dayOfWeek:'',time:'',location:'',imageUrl:'',description:''};}
+  get canPublish(){return this.role==='Administrator'||this.role==='Publisher';}
+  get roleLabel(){return this.role==='Administrator'?'Administrador paroquial':this.role==='Publisher'?'Publicador':'Editor';}
+  get publicUrl(){return '/paroquias/'+this.slugify(`${this.parishName}-${this.parishCity}`);}
+  private slugify(value:string){return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+  categoryLabel(v:string){return this.categories.find(x=>x.value===v)?.label||v;}
+  statusLabel(v:string){return ({Draft:'Rascunho',PendingReview:'Aguardando aprovação',Published:'Publicado',ChangesRequested:'Ajustes solicitados'} as Record<string,string>)[v]||v;}
+  headers(){return new HttpHeaders({'X-Portal-Token':this.token});}
+  login(){
+    if(!this.parishId||!this.email||!this.password){this.message='Selecione a paróquia e informe e-mail e senha.';return;}
+    this.busy=true;this.message='';
+    this.http.post<{token:string;name:string;role:string;parishId:string;parishName:string;parishCity:string;isPremium:boolean}>('/api/portal/login',{parishId:this.parishId,email:this.email,password:this.password}).subscribe({
+      next:x=>{this.token=x.token;this.name=x.name;this.role=x.role;this.parishId=x.parishId;this.parishName=x.parishName;this.parishCity=x.parishCity;this.isPremium=x.isPremium;this.password='';this.busy=false;this.load();},
+      error:e=>this.fail(e)});
+  }
+  logout(){this.token='';this.contents=[];this.message='';this.cancelEdit();}
+  load(){this.http.get<Content[]>('/api/portal/contents',{headers:this.headers()}).subscribe({next:x=>this.contents=x,error:e=>this.fail(e)});}
+  edit(item:Content){
+    this.editingId=item.id;let localDate='';
+    if(item.eventStartsAt){const d=new Date(item.eventStartsAt);localDate=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+    this.form={category:item.category,title:item.title,eventStartsAt:localDate,dayOfWeek:item.dayOfWeek||'',time:item.time||'',location:item.location||'',imageUrl:item.imageUrl||'',description:item.description||''};this.message='';
+  }
+  cancelEdit(){this.editingId='';this.form=this.emptyForm();}
+  save(){
+    if(!this.form.title.trim()){this.message='Informe o título.';return;}
+    const d=this.form.eventStartsAt?new Date(this.form.eventStartsAt):null;
+    if(d&&Number.isNaN(d.getTime())){this.message='Informe uma data válida.';return;}
+    const payload={...this.form,eventStartsAt:d?.toISOString()||null};
+    this.busy=true;this.message='';
+    const request=this.editingId?this.http.put('/api/portal/contents/'+this.editingId,payload,{headers:this.headers()}):this.http.post('/api/portal/contents',payload,{headers:this.headers()});
+    request.subscribe({next:()=>{this.busy=false;this.cancelEdit();this.message='Rascunho salvo. Envie para aprovação quando estiver pronto.';this.load();},error:e=>this.fail(e)});
+  }
+  action(id:string,action:string){
+    this.busy=true;this.message='';
+    this.http.post('/api/portal/contents/'+id+'/'+action,{},{headers:this.headers()}).subscribe({
+      next:()=>{this.busy=false;this.message=action==='publish'?'Publicado. Abra a página da paróquia para conferir.':action==='submit'?'Enviado para aprovação.':'Devolvido para edição e removido da página pública.';this.load();},error:e=>this.fail(e)});
+  }
+  private fail(e:HttpErrorResponse){this.busy=false;if(e.status===401){this.token='';this.message='Acesso inválido ou sessão expirada. Entre novamente.';}else if(e.status===403)this.message='Seu perfil não tem permissão para esta ação.';else this.message=typeof e.error==='string'?e.error:'Não foi possível concluir. Verifique se a API está rodando e tente novamente.';}
+}

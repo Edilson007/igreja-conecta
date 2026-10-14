@@ -1,0 +1,41 @@
+<div class="portal-shell">
+<header class="topbar"><a class="brand" href="/"><span class="brand-mark">✦</span><span>Comunhão <em>em Rede</em><small>PORTAL DA PARÓQUIA</small></span></a><a class="back-link" href="/">Voltar ao site <span>↗</span></a></header>
+<main class="wrap">
+<section class="login-layout" *ngIf="!token">
+  <div class="login-intro"><span class="eyebrow"><i></i> ÁREA DA PARÓQUIA</span><h1>Uma comunidade<br><em>mais presente.</em></h1><p>Compartilhe eventos, grupos e avisos com as pessoas que procuram sua paróquia.</p><div class="login-points"><span>✦ Atualize informações com facilidade</span><span>✦ Revise antes de publicar</span></div></div>
+  <section class="login card"><div class="login-symbol">✦</div><span class="eyebrow dark">ACESSO DA EQUIPE</span><h2>Entrar no portal</h2><p class="muted">Use os dados enviados pelo administrador do site.</p>
+    <div class="fields"><label>Paróquia<select [(ngModel)]="parishId"><option value="">Selecione sua paróquia</option><option *ngFor="let p of parishes" [value]="p.id">{{p.name}} — {{p.city}}</option></select></label>
+    <label>E-mail<input [(ngModel)]="email" type="email" autocomplete="username" placeholder="voce@paroquia.org"></label>
+    <label>Senha<input [(ngModel)]="password" type="password" autocomplete="current-password" placeholder="Sua senha" (keyup.enter)="login()"></label></div>
+    <button class="primary login-button" [disabled]="busy" (click)="login()">{{busy?'Entrando…':'Entrar no portal'}}</button><p class="help">Precisa de acesso? <a href="https://wa.me/5535998441110?text=Ol%C3%A1!%20Gostaria%20de%20solicitar%20acesso%20ao%20portal%20do%20Comunh%C3%A3o%20em%20Rede." target="_blank" rel="noopener noreferrer">Fale com o administrador do Comunhão em Rede pelo WhatsApp.</a></p>
+  </section>
+</section>
+<section *ngIf="token">
+  <div class="page-heading"><div><a class="crumb" href="/">Comunhão em Rede</a><span class="crumb-sep">/</span><span class="crumb">Portal</span>
+    <span class="eyebrow"><i></i> PORTAL DA PARÓQUIA</span><h1>{{parishName}}</h1><p class="subheading"><span>⌖</span> {{parishCity}} <b>·</b> {{name}} <b>·</b> {{roleLabel}}</p></div>
+    <div class="heading-actions"><a class="outline" *ngIf="isPremium" [href]="publicUrl" target="_blank" rel="noopener">Ver página pública <span>↗</span></a><button class="quiet" (click)="logout()">Sair</button></div>
+  </div>
+  <p class="notice" *ngIf="!isPremium">A página pública completa exige o plano Plus ativo. Solicite a ativação ao administrador do site para visualizar as publicações.</p>
+  <div class="workflow"><div class="workflow-step active"><span>1</span><div><b>Crie</b><small>Salve como rascunho</small></div></div><i></i><div class="workflow-step"><span>2</span><div><b>Revise</b><small>Envie para aprovação</small></div></div><i></i><div class="workflow-step"><span>3</span><div><b>Publique</b><small>Mostre na página pública</small></div></div></div>
+  <div class="grid"><section class="card editor-card"><div class="section-heading"><div><span class="eyebrow dark">{{editingId?'EDIÇÃO':'NOVO CONTEÚDO'}}</span><h2>{{editingId?'Editar publicação':'O que vamos divulgar?'}}</h2></div><span class="heading-icon">✎</span></div>
+    <div class="fields"><label>Tipo de publicação<select [(ngModel)]="form.category"><option *ngFor="let c of categories" [value]="c.value">{{c.label}}</option></select></label>
+    <label>Título<input [(ngModel)]="form.title" placeholder="Ex.: Encontro de jovens"></label>
+    <label *ngIf="form.category==='Event'||form.category==='Notice'">Data e hora<input [(ngModel)]="form.eventStartsAt" type="datetime-local"></label>
+    <div class="two-fields" *ngIf="form.category==='PrayerGroup'||form.category==='YouthGroup'"><label>Dia da semana<input [(ngModel)]="form.dayOfWeek" placeholder="Ex.: Quarta-feira"></label><label>Horário<input [(ngModel)]="form.time" type="time"></label></div>
+    <label>Local<input [(ngModel)]="form.location" placeholder="Onde será?"></label>
+    <label>Imagem <span class="optional">· opcional</span><input [(ngModel)]="form.imageUrl" type="url" placeholder="Cole o link da imagem"></label>
+    <label>Descrição <span class="optional">· opcional</span><textarea [(ngModel)]="form.description" rows="4" placeholder="Conte os detalhes para a comunidade"></textarea></label></div>
+    <div class="form-footer"><p>Você poderá revisar antes de publicar.</p><div class="actions"><button *ngIf="editingId" (click)="cancelEdit()">Cancelar</button><button class="primary" [disabled]="busy" (click)="save()">Salvar rascunho</button></div></div>
+  </section>
+  <section class="card publications-card"><div class="section-heading"><div><span class="eyebrow dark">ACOMPANHAMENTO</span><h2>Suas publicações <span class="count">{{contents.length}}</span></h2></div></div>
+    <div class="empty-state" *ngIf="!contents.length"><span>✦</span><h3>Seu espaço começa aqui</h3><p>Crie um evento ou grupo no formulário ao lado.<br>Depois de aprovado, ele aparece na página pública.</p></div>
+    <article class="item" *ngFor="let item of contents"><div class="item-top"><span class="category">{{categoryLabel(item.category)}}</span><span class="status" [ngClass]="item.status.toLowerCase()">{{statusLabel(item.status)}}</span></div><h3>{{item.title}}</h3>
+      <p class="meta" *ngIf="item.eventStartsAt">◷ {{item.eventStartsAt | date:'dd/MM/yyyy HH:mm'}}</p><p class="meta" *ngIf="item.dayOfWeek||item.time">◷ {{item.dayOfWeek}} {{item.time}}</p><p class="meta" *ngIf="item.location">⌖ {{item.location}}</p><p class="description" *ngIf="item.description">{{item.description}}</p>
+      <div class="actions"><ng-container *ngIf="item.status==='Draft'||item.status==='ChangesRequested'"><button class="outline" [disabled]="busy" (click)="edit(item)">Editar</button><button class="primary" [disabled]="busy" (click)="action(item.id,'submit')">Enviar para aprovação</button></ng-container>
+      <button class="primary" *ngIf="canPublish&&item.status==='PendingReview'" [disabled]="busy" (click)="action(item.id,'publish')">Aprovar e publicar</button>
+      <button class="outline" *ngIf="canPublish&&(item.status==='PendingReview'||item.status==='Published')" [disabled]="busy" (click)="action(item.id,'return')">{{item.status==='Published'?'Retirar para edição':'Solicitar ajustes'}}</button></div>
+    </article>
+  </section></div>
+</section>
+<p class="message" role="status" *ngIf="message">{{message}}</p>
+</main></div>

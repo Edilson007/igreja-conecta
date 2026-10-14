@@ -14,6 +14,7 @@
             "outputPath": "dist/igreja-conecta-web",
             "index": "src/index.html",
             "main": "src/main.ts",
+            "aot": true,
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [{ "glob": "**/*", "input": "src/assets", "output": "assets" }],

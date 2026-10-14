@@ -11,4 +11,5 @@ export class ParishService {
     return this.http.get<Parish[]>(this.apiUrl, { params });
   }
   getById(id: string) { return this.http.get<Parish>(`${this.apiUrl}/${id}`); }
+  getBySlug(slug: string) { return this.http.get<Parish>(`${this.apiUrl}/slug/${encodeURIComponent(slug)}`); }
 }

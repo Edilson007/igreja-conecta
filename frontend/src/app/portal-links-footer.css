@@ -1,0 +1,6 @@
+.help a{color:#17634c;font-weight:700;text-decoration:underline;text-decoration-color:#a8c4b1;text-underline-offset:3px}
+.help a:hover{color:#104b3b;text-decoration-color:currentColor}
+.help a:focus-visible{outline:2px solid #17634c;outline-offset:3px;border-radius:2px}
+.portal-shell footer{gap:8px;flex-wrap:wrap}
+.portal-shell{min-height:calc(100vh - 58px)}
+@media(max-width:680px){.portal-shell footer{display:grid;gap:5px}}
