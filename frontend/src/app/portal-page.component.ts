@@ -5,10 +5,10 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Parish } from './core/models/parish';
 type Content={id:string;category:string;status:string;title:string;eventStartsAt?:string;dayOfWeek?:string;time?:string;location?:string;imageUrl?:string;description?:string};
 @Component({selector:'app-root',standalone:true,imports:[CommonModule,FormsModule],
-templateUrl:'./portal-page.component.html',styleUrls:['./portal-page.component.css','./portal-links-footer.css']})
+templateUrl:'./portal-page.component.html',styleUrls:['./portal-page.component.css','./portal-image-upload.css','./portal-links-footer.css']})
 export class PortalPageComponent {
   parishes:Parish[]=[]; parishId=''; parishName=''; parishCity=''; isPremium=false;
-  email=''; password=''; token=''; name=''; role=''; message=''; busy=false;
+  email=''; password=''; token=''; name=''; role=''; message=''; busy=false; uploadingImage=false;
   contents:Content[]=[]; editingId=''; form=this.emptyForm();
   readonly categories=[{value:'Event',label:'Eventos'},{value:'PrayerGroup',label:'Grupos de oração'},{value:'YouthGroup',label:'Grupos de jovens'},{value:'Notice',label:'Outros eventos e avisos'}];
   constructor(private http:HttpClient){http.get<Parish[]>('/api/parishes').subscribe({next:x=>this.parishes=x,error:e=>this.fail(e)});}
@@ -20,6 +20,19 @@ export class PortalPageComponent {
   categoryLabel(v:string){return this.categories.find(x=>x.value===v)?.label||v;}
   statusLabel(v:string){return ({Draft:'Rascunho',PendingReview:'Aguardando aprovação',Published:'Publicado',ChangesRequested:'Ajustes solicitados'} as Record<string,string>)[v]||v;}
   headers(){return new HttpHeaders({'X-Portal-Token':this.token});}
+  uploadImage(event:Event){
+    const input=event.target as HTMLInputElement;
+    const file=input.files?.[0];
+    if(!file)return;
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){this.message='Escolha uma imagem JPG, PNG ou WEBP.';input.value='';return;}
+    if(file.size>5*1024*1024){this.message='A imagem deve ter no máximo 5 MB.';input.value='';return;}
+    const data=new FormData();data.append('file',file);
+    this.uploadingImage=true;this.message='Enviando imagem…';
+    this.http.post<{url:string}>('/api/portal/images',data,{headers:this.headers()}).subscribe({
+      next:result=>{this.form.imageUrl=result.url;this.uploadingImage=false;this.message='Imagem anexada. Salve o rascunho para guardar a publicação.';input.value='';},
+      error:error=>{this.uploadingImage=false;this.message=error.error?.message||'Não foi possível enviar a imagem.';input.value='';}
+    });
+  }
   login(){
     if(!this.parishId||!this.email||!this.password){this.message='Selecione a paróquia e informe e-mail e senha.';return;}
     this.busy=true;this.message='';

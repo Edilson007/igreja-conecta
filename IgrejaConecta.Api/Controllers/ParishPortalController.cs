@@ -8,7 +8,7 @@ namespace IgrejaConecta.Api.Controllers;
 
 [ApiController]
 [Route("api/portal")]
-public sealed class ParishPortalController(ChurchDbContext db) : ControllerBase
+public sealed class ParishPortalController(ChurchDbContext db, IWebHostEnvironment environment) : ControllerBase
 {
     private static readonly ConcurrentDictionary<string, PortalSession> Sessions = new();
 
@@ -33,6 +33,35 @@ public sealed class ParishPortalController(ChurchDbContext db) : ControllerBase
             .Where(x => x.ParishId == session.ParishId)
             .ToArrayAsync(ct);
         return Ok(contents.OrderByDescending(x => x.CreatedAt).Select(ToDto).ToArray());
+    }
+
+    [HttpPost("images")]
+    [RequestSizeLimit(5 * 1024 * 1024 + 64 * 1024)]
+    public async Task<ActionResult<ImageUploadResponse>> UploadImage(
+        [FromHeader(Name = "X-Portal-Token")] string? token,
+        IFormFile? file,
+        CancellationToken ct)
+    {
+        if (Require(token) is null) return Unauthorized();
+        const long maxFileSize = 5 * 1024 * 1024;
+        var allowedTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["image/jpeg"] = ".jpg",
+            ["image/png"] = ".png",
+            ["image/webp"] = ".webp"
+        };
+        if (file is null || file.Length == 0) return BadRequest(new { message = "Selecione uma imagem." });
+        if (file.Length > maxFileSize) return BadRequest(new { message = "A imagem deve ter no máximo 5 MB." });
+        if (!allowedTypes.TryGetValue(file.ContentType, out var extension))
+            return BadRequest(new { message = "Envie uma imagem JPG, PNG ou WEBP." });
+
+        var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
+        var uploadsDirectory = Path.Combine(webRoot, "uploads");
+        Directory.CreateDirectory(uploadsDirectory);
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        await using var output = System.IO.File.Create(Path.Combine(uploadsDirectory, fileName));
+        await file.CopyToAsync(output, ct);
+        return Ok(new ImageUploadResponse($"/uploads/{fileName}"));
     }
 
     [HttpPost("contents")]
